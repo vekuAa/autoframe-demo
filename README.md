@@ -1,87 +1,105 @@
-# AutoFrame React V1
+# AutoFrame React V2
 
-Prototype autonome React + TypeScript pour standardiser la prise de photo automobile.
+Prototype autonome de standardisation de prises de vue automobiles.
 
-## Stack
-- React
-- TypeScript
-- Vite
-- TensorFlow.js
-- COCO-SSD
+## Ce que la V2 ajoute
 
-COCO-SSD reçoit directement l'élément `<video>` du navigateur et retourne notamment une bounding box,
-une classe et un score de confiance. Dans cette V1 il sert uniquement à localiser le véhicule.
+- contrôle de luminosité en direct ;
+- estimation légère de netteté ;
+- moteur d'angle séparé ;
+- distinction expérimentale `profil` vs `3/4` ;
+- refus de validation lorsque la famille de vue paraît incompatible ;
+- architecture prête à remplacer l'heuristique par un vrai classificateur automobile.
 
-## Fonctions V1
-- caméra arrière téléphone
-- détection voiture / camion / bus
-- protocole de 3 vues
-- gabarit visuel distinct par vue
-- moteur de qualité séparé (`src/lib/qualityEngine.ts`)
-- rouge : hors tolérances
-- orange : proche de la cible
-- vert : taille + centrage conformes
-- stabilité requise avant activation du bouton
-- capture photo
-- passage automatique à l'étape suivante
+## Très important : limite de l'angle
 
-## Important
-Cette V1 ne certifie PAS encore que la caméra voit réellement un angle 3/4 avant, profil ou 3/4 arrière.
-Le gabarit indique la vue attendue, mais COCO-SSD ne fournit pas cette classification d'angle.
-Une V2 devra ajouter un modèle automobile spécialisé.
+Le fichier `src/lib/angleEstimator.ts` est une **heuristique de démonstration**.
 
-## Installation locale
+Il utilise principalement le ratio largeur/hauteur de la bounding box détectée pour tenter
+de distinguer :
 
-Vite actuel nécessite une version moderne de Node.js.
+- silhouette très longue -> plutôt profil ;
+- silhouette plus compacte -> plutôt 3/4.
+
+Cette méthode n'est PAS suffisante pour une production automobile.
+
+Elle ne peut pas certifier de manière fiable :
+- avant vs arrière ;
+- gauche vs droite ;
+- angle exact en degrés ;
+- différences de silhouettes entre citadine, SUV, utilitaire, etc.
+
+Le but de la V2 est de valider l'UX et l'architecture.
+
+## Architecture cible production
+
+```text
+Camera
+  ↓
+Vehicle detector
+  ↓
+Image-quality analyzer
+  ├─ brightness
+  └─ sharpness
+  ↓
+Automotive viewpoint classifier
+  ├─ front
+  ├─ front-left-3q
+  ├─ left-side
+  ├─ rear-left-3q
+  ├─ rear
+  ├─ rear-right-3q
+  ├─ right-side
+  └─ front-right-3q
+  ↓
+QualityEngine
+  ↓
+red / orange / green
+```
+
+Dans une V3, `angleEstimator.ts` devra être remplacé par un modèle entraîné sur des images
+automobiles étiquetées par vue.
+
+## Installation
 
 ```bash
 npm install
 npm run dev
 ```
 
-Puis ouvrir l'URL locale affichée par Vite.
-
-## Test sur téléphone
-
-L'accès caméra du navigateur nécessite un contexte sécurisé dans les navigateurs courants.
-Déploie le projet en HTTPS (Vercel, Netlify ou GitHub Pages), puis ouvre l'URL sur le téléphone.
-
-### GitHub Pages
-
-Le projet utilise `base: './'` dans `vite.config.ts` et contient déjà :
-`.github/workflows/deploy-pages.yml`.
-
-Tu peux donc pousser tout le dossier sur GitHub. Ensuite :
-
-1. `Settings` → `Pages`
-2. Dans `Build and deployment`, choisir **GitHub Actions**
-3. pousser sur la branche `main`
-
-GitHub installera les dépendances, construira Vite et publiera automatiquement le dossier `dist`.
-
-En local :
+## Build
 
 ```bash
-npm install
 npm run build
 ```
 
-## Architecture
+## GitHub Pages
 
-```text
-src/
-  components/
-    GuideOverlay.tsx
-    Metrics.tsx
-    ProtocolStrip.tsx
-  lib/
-    detector.ts       # TensorFlow / COCO-SSD
-    protocol.ts       # liste des prises de vue
-    qualityEngine.ts  # règles métier rouge/orange/vert
-  App.tsx
-  types.ts
-  styles.css
-```
+Le workflow est inclus :
 
-Le découplage du moteur de qualité est volontaire : il pourra être repris ou exposé plus tard
-dans l'application métier principale.
+`.github/workflows/deploy-pages.yml`
+
+Dans GitHub :
+
+1. Settings
+2. Pages
+3. Source : GitHub Actions
+4. push sur `main`
+
+## Comment mettre à jour ton repo existant
+
+Tu peux remplacer les fichiers V1 par ceux de cette V2, notamment :
+
+- `src/App.tsx`
+- `src/types.ts`
+- `src/components/Metrics.tsx`
+- `src/lib/protocol.ts`
+- `src/lib/qualityEngine.ts`
+
+et ajouter :
+
+- `src/lib/imageQuality.ts`
+- `src/lib/angleEstimator.ts`
+
+Le workflow et `tsconfig.node.json` fournis ici contiennent également les corrections utilisées
+pour ton déploiement GitHub Pages.

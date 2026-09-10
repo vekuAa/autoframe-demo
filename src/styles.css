@@ -61,3 +61,56 @@ h1 span{font-weight:500;color:#8290a0}
 .hidden-canvas{display:none}
 footer{padding:14px 5px;color:#667482;font-size:9px;line-height:1.45;text-align:center}
 @media(min-width:700px){.app-shell{padding-top:34px}.phone-shell{padding:14px;border-radius:34px;background:rgba(9,14,20,.58);border:1px solid #1a2530;box-shadow:0 25px 80px rgba(0,0,0,.35)}}
+
+.experimental-banner{
+  margin:0 0 9px;
+  padding:9px 11px;
+  border-radius:13px;
+  background:#171d24;
+  border:1px solid #36414d;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.experimental-banner strong{
+  color:#f7ab2f;
+  font-size:9px;
+  letter-spacing:.12em;
+}
+.experimental-banner span{
+  color:#94a0ad;
+  font-size:9px;
+  line-height:1.35;
+}
+.metrics-v2{
+  grid-template-columns:repeat(3,1fr);
+}
+.angle-panel{
+  margin-top:8px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:#101720;
+  border:1px solid #1a2531;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.angle-panel .mini-label{
+  display:block;
+  font-size:8px;
+  color:#7f8d9c;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  margin-bottom:3px;
+}
+.angle-panel strong{
+  display:block;
+  font-size:11px;
+  line-height:1.3;
+}
+.angle-score{
+  flex:0 0 auto;
+  font-size:17px;
+  font-weight:900;
+}

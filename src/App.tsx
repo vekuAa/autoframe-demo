@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import GuideOverlay from './components/GuideOverlay'
 import Metrics from './components/Metrics'
 import ProtocolStrip from './components/ProtocolStrip'
+import { estimateAngle } from './lib/angleEstimator'
 import { detectVehicle, loadVehicleDetector } from './lib/detector'
+import { analyzeImageQuality } from './lib/imageQuality'
 import { PROTOCOL } from './lib/protocol'
 import { evaluateFraming } from './lib/qualityEngine'
 import type { QualityLevel, QualityResult, VehicleDetection } from './types'
@@ -15,6 +17,9 @@ const emptyStatus: QualityResult = {
   confidence: 0,
   coverage: 0,
   alignment: 0,
+  brightness: 0,
+  sharpness: 0,
+  angleScore: 0,
 }
 
 export default function App() {
@@ -34,14 +39,11 @@ export default function App() {
   const [result, setResult] = useState<QualityResult>(emptyStatus)
   const [frameSize, setFrameSize] = useState({ width: 1280, height: 720 })
   const [snapshot, setSnapshot] = useState<string | null>(null)
+  const [angleMessage, setAngleMessage] = useState('Angle non évalué')
 
   useEffect(() => {
     currentIndexRef.current = currentIndex
   }, [currentIndex])
-
-  const current = PROTOCOL[currentIndex]
-  const level: QualityLevel = result.level
-  const captureReady = cameraActive && result.ready && stableRef.current >= 3
 
   useEffect(() => {
     return () => {
@@ -49,6 +51,10 @@ export default function App() {
       streamRef.current?.getTracks().forEach((t) => t.stop())
     }
   }, [])
+
+  const current = PROTOCOL[currentIndex]
+  const level: QualityLevel = result.level
+  const captureReady = cameraActive && result.ready && stableRef.current >= 3
 
   async function startCamera() {
     if (cameraActive || loading) return
@@ -127,6 +133,7 @@ export default function App() {
       if (!vehicle) {
         stableRef.current = 0
         setDetection(null)
+        setAngleMessage('Aucun véhicule à analyser')
         setResult({
           ...emptyStatus,
           title: 'Aucun véhicule détecté',
@@ -134,12 +141,22 @@ export default function App() {
         })
       } else {
         setDetection(vehicle)
+
+        const protocol = PROTOCOL[currentIndexRef.current]
+        const imageQuality = analyzeImageQuality(video)
+        const angle = estimateAngle(vehicle, protocol)
+
+        setAngleMessage(angle.message)
+
         const evaluation = evaluateFraming(
           vehicle,
           video.videoWidth,
           video.videoHeight,
-          PROTOCOL[currentIndexRef.current],
+          protocol,
+          imageQuality,
+          angle,
         )
+
         stableRef.current = evaluation.ready ? stableRef.current + 1 : 0
         setResult(evaluation)
       }
@@ -147,7 +164,7 @@ export default function App() {
       console.error(error)
     } finally {
       busyRef.current = false
-      if (runRef.current) window.setTimeout(detectionLoop, 260)
+      if (runRef.current) window.setTimeout(detectionLoop, 280)
     }
   }
 
@@ -200,10 +217,15 @@ export default function App() {
         <header className="topbar">
           <div>
             <div className="eyebrow">SMART VEHICLE CAPTURE</div>
-            <h1>AutoFrame <span>V1</span></h1>
+            <h1>AutoFrame <span>V2</span></h1>
           </div>
           <div className="counter">{currentIndex + 1} / {PROTOCOL.length}</div>
         </header>
+
+        <div className="experimental-banner">
+          <strong>ANGLE EXPÉRIMENTAL</strong>
+          <span>La V2 distingue seulement profil ↔ 3/4 par heuristique de silhouette.</span>
+        </div>
 
         <ProtocolStrip
           steps={PROTOCOL}
@@ -213,6 +235,7 @@ export default function App() {
 
         <section className={`camera-card ${level}`}>
           <video ref={videoRef} muted playsInline autoPlay />
+
           <GuideOverlay
             level={level}
             detection={detection}
@@ -222,7 +245,7 @@ export default function App() {
           />
 
           <div className="camera-label">
-            <span>{current.shortLabel}</span>
+            <span>VUE ATTENDUE</span>
             <strong>{current.label}</strong>
           </div>
 
@@ -238,6 +261,16 @@ export default function App() {
             <p>{result.message}</p>
           </div>
         </section>
+
+        <div className="angle-panel">
+          <div>
+            <span className="mini-label">Contrôle angle*</span>
+            <strong>{angleMessage}</strong>
+          </div>
+          <div className="angle-score">
+            {cameraActive ? `${Math.round(result.angleScore * 100)}%` : '—'}
+          </div>
+        </div>
 
         <Metrics result={cameraActive ? result : null} />
 
@@ -273,8 +306,8 @@ export default function App() {
         <canvas ref={canvasRef} className="hidden-canvas" />
 
         <footer>
-          V1 démo · la couleur valide aujourd’hui détection + taille + centrage.
-          La certification de l’angle exact nécessite un modèle automobile spécialisé.
+          *La classification d’angle de cette V2 est une heuristique de démonstration.
+          Elle ne distingue pas de façon fiable avant/arrière ni gauche/droite.
         </footer>
       </section>
     </main>
