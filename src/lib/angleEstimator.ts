@@ -1,17 +1,9 @@
 import type { AngleEstimate, VehicleDetection, ViewProtocol } from '../types'
 
 /**
- * Experimental demo-only viewpoint heuristic.
- *
- * It can roughly separate a long side-profile silhouette from a more compact
- * three-quarter silhouette using the detected vehicle bbox aspect ratio.
- *
- * It CANNOT reliably distinguish:
- * - front vs rear
- * - left vs right
- * - exact yaw angle
- *
- * Replace this module later with a trained automotive viewpoint classifier.
+ * Experimental V3 heuristic.
+ * Only distinguishes "side" versus "three-quarter-ish".
+ * Front/rear recognition requires a trained model.
  */
 export function estimateAngle(
   detection: VehicleDetection,
@@ -32,6 +24,17 @@ export function estimateAngle(
     score = Math.max(0.52, 0.82 - Math.abs(ratio - center) * 0.28)
   }
 
+  // Front/rear are deliberately not validated by this heuristic.
+  if (protocol.family === 'front' || protocol.family === 'rear') {
+    return {
+      family: 'unknown',
+      score: 0.35,
+      compatible: true,
+      experimental: true,
+      message: 'Face avant/arrière : validation d’angle réservée au futur modèle entraîné',
+    }
+  }
+
   const compatible = family !== 'unknown' && family === protocol.family
 
   let message = 'Angle non déterminé'
@@ -43,15 +46,9 @@ export function estimateAngle(
   } else if (family !== 'unknown') {
     message =
       protocol.family === 'side'
-        ? 'La silhouette paraît trop 3/4 pour la vue profil attendue'
+        ? 'La silhouette paraît trop 3/4 pour le profil attendu'
         : 'La silhouette paraît trop latérale pour la vue 3/4 attendue'
   }
 
-  return {
-    family,
-    score,
-    compatible,
-    experimental: true,
-    message,
-  }
+  return { family, score, compatible, experimental: true, message }
 }

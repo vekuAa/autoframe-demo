@@ -1,6 +1,6 @@
 export type QualityLevel = 'red' | 'orange' | 'green'
 
-export type ViewFamily = 'three-quarter' | 'side'
+export type ViewFamily = 'front' | 'rear' | 'side' | 'three-quarter'
 
 export type ViewProtocol = {
   id: string
@@ -45,4 +45,20 @@ export type QualityResult = {
   brightness: number
   sharpness: number
   angleScore: number
+}
+
+export type DatasetSample = {
+  id: string
+  createdAt: string
+  viewId: string
+  viewLabel: string
+  imageDataUrl: string
+  metrics: {
+    detection: number
+    coverage: number
+    alignment: number
+    brightness: number
+    sharpness: number
+    angleScore: number
+  }
 }

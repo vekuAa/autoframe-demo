@@ -1,105 +1,70 @@
-# AutoFrame React V2
+# AutoFrame React V3
 
-Prototype autonome de standardisation de prises de vue automobiles.
+V3 du prototype de standardisation photo automobile.
 
-## Ce que la V2 ajoute
+## Nouveauté principale : mode Collecte IA
 
-- contrôle de luminosité en direct ;
-- estimation légère de netteté ;
-- moteur d'angle séparé ;
-- distinction expérimentale `profil` vs `3/4` ;
-- refus de validation lorsque la famille de vue paraît incompatible ;
-- architecture prête à remplacer l'heuristique par un vrai classificateur automobile.
+La V3 prépare la création d'un vrai classificateur automobile 8 vues.
 
-## Très important : limite de l'angle
+Classes :
+1. Face avant
+2. 3/4 avant gauche
+3. Profil gauche
+4. 3/4 arrière gauche
+5. Face arrière
+6. 3/4 arrière droit
+7. Profil droit
+8. 3/4 avant droit
 
-Le fichier `src/lib/angleEstimator.ts` est une **heuristique de démonstration**.
+Dans l'application, passe sur `Collecte IA`, sélectionne la classe correcte puis photographie
+le véhicule. Chaque photo est stockée localement dans le navigateur avec ses métriques.
 
-Il utilise principalement le ratio largeur/hauteur de la bounding box détectée pour tenter
-de distinguer :
+Le bouton `Exporter JSON` génère un fichier contenant :
+- l'étiquette de vue ;
+- la photo JPEG sous forme data URL ;
+- date/heure ;
+- score de détection ;
+- centrage ;
+- occupation ;
+- lumière ;
+- netteté ;
+- score de l'heuristique d'angle.
 
-- silhouette très longue -> plutôt profil ;
-- silhouette plus compacte -> plutôt 3/4.
+## Pourquoi
 
-Cette méthode n'est PAS suffisante pour une production automobile.
+La V2 utilise une heuristique de silhouette. Elle n'est pas suffisante pour distinguer réellement
+les 8 angles.
 
-Elle ne peut pas certifier de manière fiable :
-- avant vs arrière ;
-- gauche vs droite ;
-- angle exact en degrés ;
-- différences de silhouettes entre citadine, SUV, utilitaire, etc.
+Le dataset créé avec la V3 servira à entraîner plus tard un modèle spécialisé.
 
-Le but de la V2 est de valider l'UX et l'architecture.
+## Conseils de collecte
 
-## Architecture cible production
+Ne photographie pas seulement un véhicule.
 
-```text
-Camera
-  ↓
-Vehicle detector
-  ↓
-Image-quality analyzer
-  ├─ brightness
-  └─ sharpness
-  ↓
-Automotive viewpoint classifier
-  ├─ front
-  ├─ front-left-3q
-  ├─ left-side
-  ├─ rear-left-3q
-  ├─ rear
-  ├─ rear-right-3q
-  ├─ right-side
-  └─ front-right-3q
-  ↓
-QualityEngine
-  ↓
-red / orange / green
-```
+Pour éviter que le modèle mémorise un modèle de voiture au lieu de l'angle, varier :
+- citadines ;
+- berlines ;
+- SUV ;
+- utilitaires ;
+- couleurs ;
+- arrière-plans ;
+- luminosité ;
+- distances raisonnables.
 
-Dans une V3, `angleEstimator.ts` devra être remplacé par un modèle entraîné sur des images
-automobiles étiquetées par vue.
+Garder une étiquette correcte est plus important que le volume.
 
-## Installation
+## Déploiement
+
+Même workflow GitHub Pages que précédemment.
 
 ```bash
 npm install
-npm run dev
-```
-
-## Build
-
-```bash
 npm run build
 ```
 
-## GitHub Pages
+Puis push sur `main`.
 
-Le workflow est inclus :
+## Limitation
 
-`.github/workflows/deploy-pages.yml`
-
-Dans GitHub :
-
-1. Settings
-2. Pages
-3. Source : GitHub Actions
-4. push sur `main`
-
-## Comment mettre à jour ton repo existant
-
-Tu peux remplacer les fichiers V1 par ceux de cette V2, notamment :
-
-- `src/App.tsx`
-- `src/types.ts`
-- `src/components/Metrics.tsx`
-- `src/lib/protocol.ts`
-- `src/lib/qualityEngine.ts`
-
-et ajouter :
-
-- `src/lib/imageQuality.ts`
-- `src/lib/angleEstimator.ts`
-
-Le workflow et `tsconfig.node.json` fournis ici contiennent également les corrections utilisées
-pour ton déploiement GitHub Pages.
+Le stockage `localStorage` est adapté à une petite démo uniquement. Les photos encodées en base64
+occupent rapidement beaucoup d'espace. Une version de collecte sérieuse utilisera IndexedDB ou un backend.

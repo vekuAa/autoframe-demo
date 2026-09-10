@@ -4,28 +4,29 @@ type Props = {
   steps: ViewProtocol[]
   currentIndex: number
   completed: Set<number>
+  onSelect?: (index: number) => void
 }
 
-export default function ProtocolStrip({ steps, currentIndex, completed }: Props) {
+export default function ProtocolStrip({ steps, currentIndex, completed, onSelect }: Props) {
   return (
-    <div className="protocol-strip">
+    <div className="protocol-strip protocol-scroll">
       {steps.map((step, index) => (
-        <div
+        <button
           className={[
             'protocol-step',
             index === currentIndex ? 'active' : '',
             completed.has(index) ? 'done' : '',
           ].join(' ')}
           key={step.id}
+          onClick={() => onSelect?.(index)}
+          type="button"
         >
-          <div className="step-index">
-            {completed.has(index) ? '✓' : index + 1}
-          </div>
+          <div className="step-index">{completed.has(index) ? '✓' : index + 1}</div>
           <div>
             <strong>{step.shortLabel}</strong>
             <span>{step.label}</span>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   )
